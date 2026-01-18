@@ -1,0 +1,28 @@
+{
+  "name": "@hackfed/toolbox",
+  "module": "src/index.ts",
+  "type": "module",
+  "bin": {
+    "hackfed-toolbox": "src/index.ts"
+  },
+  "scripts": {
+    "lint": "tsc --noEmit && eslint ."
+  },
+  "private": true,
+  "version": "0.1.0",
+  "devDependencies": {
+    "@bksp/style-guide": "^1.2.6",
+    "@types/bun": "latest",
+    "eslint": "^9.39.2"
+  },
+  "peerDependencies": {
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@hackfed/schemas": "^0.3.0",
+    "commander": "^14.0.2",
+    "ipaddr.js": "^2.3.0",
+    "tslog": "^4.10.2",
+    "zod": "^4.3.5"
+  }
+}
