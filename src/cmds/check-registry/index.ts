@@ -47,6 +47,12 @@ async function checkOrganizations (registryPath: string, logger: Logger<unknown>
     orgs.set(org.spec.id, org)
   }
 
+  // Warn if no organizations found
+  if (orgs.size === 0) {
+    logger.warn('No organizations found in registry!')
+    process.exit(0)
+  }
+
   // Check services across organizations
   const context: CheckServiceContext = { logger, orgs, registryPath }
   await checkNebulaService(context)
