@@ -19,7 +19,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@hackfed/schemas": "^0.3.0",
+    "@hackfed/schemas": "^0.7.0",
     "commander": "^14.0.2",
     "ipaddr.js": "^2.3.0",
     "tslog": "^4.10.2",

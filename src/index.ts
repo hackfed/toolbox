@@ -4,6 +4,8 @@ import { Command } from 'commander'
 import { Logger } from 'tslog'
 
 import cmdCheckRegistry from './cmds/check-registry'
+import generateTelephony from './cmds/generate-telephony'
+
 const program = new Command()
 const logger = new Logger({
   name: 'Toolbox',
@@ -17,5 +19,6 @@ program
 
 // Register commands
 cmdCheckRegistry(program, logger)
+generateTelephony(program, logger)
 
 program.parse()
