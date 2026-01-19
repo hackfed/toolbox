@@ -1,15 +1,11 @@
-# toolbox
+# Toolbox • Hackfed
 
-To install dependencies:
+Tools for Hackfed Registry.
 
-```bash
-bun install
-```
+Requires Bun to run.
 
-To run:
+## Example
 
 ```bash
-bun run index.ts
+bunx @hackfed/toolbox
 ```
-
-This project was created using `bun init` in bun v1.3.6. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
