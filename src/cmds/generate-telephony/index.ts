@@ -1,6 +1,12 @@
 import type { Command } from 'commander'
 
-import { OrganizationSchema, type TelephonyDirectory, type TelephonyDirectoryExchange, type TelephonyDirectoryOrg } from '@hackfed/schemas/v1'
+import {
+  OrganizationSchema,
+  type TelephonyDirectory,
+  type TelephonyDirectoryExchange,
+  type TelephonyDirectoryOrg,
+  TelephonyDirectorySchema,
+} from '@hackfed/schemas/v1'
 import { Glob, YAML } from 'bun'
 import path from 'node:path'
 import { type Logger } from 'tslog'
@@ -74,9 +80,9 @@ async function generateTelephonyDirectory (
     logger.debug('Added organization: %s (%s)', org.spec.name, org.spec.id)
   }
 
-  const directory: TelephonyDirectory = {
+  const directory = TelephonyDirectorySchema.parse({
     orgs,
-  }
+  } satisfies TelephonyDirectory)
 
   const file = Bun.file(path.resolve(options.output))
   await Bun.write(file, JSON.stringify(directory))
