@@ -1,7 +1,7 @@
 {
   "name": "@hackfed/toolbox",
   "description": "Tools for Hackfed Registry",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "bin": {
     "hackfed-toolbox": "src/index.ts"
   },
