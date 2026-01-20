@@ -22,7 +22,7 @@ jobs:
         run: bun install
 
       - name: Check
-        run: bun lint
+        run: bun run check
 
       # PNPM and Node are required for OIDC publishing
       - name: Install pnpm
