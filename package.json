@@ -6,7 +6,7 @@
     "hackfed-toolbox": "src/index.ts"
   },
   "dependencies": {
-    "@hackfed/schemas": "^0.7.0",
+    "@hackfed/schemas": "^0.8.0",
     "commander": "^14.0.2",
     "ipaddr.js": "^2.3.0",
     "tslog": "^4.10.2",
@@ -35,7 +35,7 @@
     "url": "git+https://github.com/hackfed/toolbox.git"
   },
   "scripts": {
-    "lint": "tsc --noEmit && eslint ."
+    "check": "tsc --noEmit && eslint ."
   },
   "type": "module"
 }

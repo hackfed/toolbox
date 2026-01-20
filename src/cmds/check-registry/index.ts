@@ -167,7 +167,6 @@ async function checkTelephonyService (context: CheckServiceContext): Promise<voi
     }
 
     const orgExchanges = new Set<string>()
-    const orgPrefixes = new Set<string>()
 
     if (org.spec.services.telephony.exchanges) {
       for (const exchange of org.spec.services.telephony.exchanges) {
@@ -189,32 +188,14 @@ async function checkTelephonyService (context: CheckServiceContext): Promise<voi
           process.exit(1)
         }
 
-        orgExchanges.add(exchange.id)
-      }
-    }
-
-    if (org.spec.services.telephony.prefixes) {
-      for (const prefix of org.spec.services.telephony.prefixes) {
         // Check for duplicate prefixes across organizations
-        if (prefixes.has(prefix.prefix)) {
-          context.logger.error('(%s) duplicate Telephony prefix found: %s', org.spec.id, prefix.prefix)
+        if (prefixes.has(exchange.prefix)) {
+          context.logger.error('(%s) duplicate Telephony prefix found: %s', org.spec.id, exchange.prefix)
           process.exit(1)
         }
 
-        // Check for duplicate prefixes within organization
-        if (orgPrefixes.has(prefix.prefix)) {
-          context.logger.error('(%s) duplicate Telephony prefix found within organization: %s', org.spec.id, prefix.prefix)
-          process.exit(1)
-        }
-
-        // Verify that referenced exchange exists
-        if (!orgExchanges.has(prefix.exchange)) {
-          context.logger.error('(%s) Telephony prefix references unknown exchange: %s', org.spec.id, prefix.exchange)
-          process.exit(1)
-        }
-
-        prefixes.add(prefix.prefix)
-        orgPrefixes.add(prefix.prefix)
+        prefixes.add(exchange.prefix)
+        orgExchanges.add(exchange.id)
       }
     }
   }

@@ -50,14 +50,6 @@ async function generateTelephonyDirectory (
       continue
     }
 
-    // Map prefixes to exchanges
-    const exchangePrefixes = new Map<string, Set<string>>()
-    for (const prefix of org.spec.services.telephony.prefixes ?? []) {
-      const prefixes = exchangePrefixes.get(prefix.exchange) ?? new Set<string>()
-      prefixes.add(prefix.prefix)
-      exchangePrefixes.set(prefix.exchange, prefixes)
-    }
-
     // Map exchanges
     const exchanges = new Map<string, TelephonyDirectoryExchange>()
     for (const exchange of org.spec.services.telephony.exchanges ?? []) {
@@ -65,7 +57,7 @@ async function generateTelephonyDirectory (
         codecs: exchange.codecs,
         endpoint: exchange.address,
         id: exchange.id,
-        prefixes: [...exchangePrefixes.get(exchange.id) ?? []],
+        prefix: exchange.prefix,
         protocol: exchange.protocol
       })
     }
@@ -74,7 +66,7 @@ async function generateTelephonyDirectory (
       exchanges: [...exchanges.values()],
       name: org.spec.name,
       orgId: org.spec.id,
-      phonebooks: org.spec.services.telephony.phonebook ?? []
+      phonebook: org.spec.services.telephony.phonebook,
     })
 
     logger.debug('Added organization: %s (%s)', org.spec.name, org.spec.id)
