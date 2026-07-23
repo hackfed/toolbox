@@ -5,6 +5,7 @@ import { Logger } from 'tslog'
 
 import commandCheckRegistry from './cmds/check-registry'
 import generateTelephony from './cmds/generate-telephony'
+import generateWireGuard from './cmds/generate-wireguard'
 
 const program = new Command()
 const logger = new Logger({
@@ -23,5 +24,6 @@ program
 // Register commands
 commandCheckRegistry(program, logger)
 generateTelephony(program, logger)
+generateWireGuard(program, logger)
 
 program.parse()
