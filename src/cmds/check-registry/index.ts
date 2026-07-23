@@ -9,7 +9,7 @@ import { type Logger } from 'tslog'
 import type { CheckServiceContext, OrganizationMap } from './interface'
 
 /**
- * IPv6 prefix for HackFed Nebula network.
+ * IPv6 prefix for HackFed network.
  */
 const HACKFED_NET_TELEPHONY_PREFIX = 'fd79:7636:1f08:883d::/64'
 
@@ -23,14 +23,31 @@ export default function register (program: Command, rootLogger: Logger<unknown>)
 }
 
 /**
- * Check the Hackfed registry located at the given directory.
- * @param directory Path to registry root directory
+ * Checks a particular organization resource definition.
+ * @param orgPath Path to organization resource definition file
+ * @returns Organization Resource Definition
  */
-async function checkRegistry (directory: string, logger: Logger<unknown>): Promise<void> {
-  const registryPath = path.resolve(directory)
-  logger.info(`Checking registry at: ${registryPath}`)
+async function checkOrganization (orgPath: string, logger: Logger<unknown>): Promise<Organization> {
+  logger.debug(`Checking organization file: ${orgPath}`)
 
-  await checkOrganizations(registryPath, logger)
+  const raw = YAML.parse(await Bun.file(orgPath).text())
+  const parsed = OrganizationSchema.parse(raw)
+
+  // Verify that organization IDs are consistent
+  {
+    const fileName = path.basename(orgPath, path.extname(orgPath))
+    if (parsed.metadata.orgId !== fileName) {
+      logger.error('(%s): metadata orgId mismatch "%s"', fileName, parsed.metadata.orgId)
+      process.exit(1)
+    }
+
+    if (parsed.metadata.orgId !== parsed.spec.id) {
+      logger.error('(%s): spec orgId mismatch "%s"', fileName, parsed.spec.id)
+      process.exit(1)
+    }
+  }
+
+  return parsed
 }
 
 /**
@@ -55,110 +72,28 @@ async function checkOrganizations (registryPath: string, logger: Logger<unknown>
 
   // Check services across organizations
   const context: CheckServiceContext = { logger, orgs, registryPath }
-  await checkNebulaService(context)
-  await checkTelephonyService(context)
+  checkTelephonyService(context)
+  checkWireguardService(context)
 
   logger.info('🎉 Registry check completed successfully.')
 }
 
 /**
- * Checks a particular organization resource definition.
- * @param orgPath Path to organization resource definition file
- * @returns Organization Resource Definition
+ * Check the Hackfed registry located at the given directory.
+ * @param directory Path to registry root directory
  */
-async function checkOrganization (orgPath: string, logger: Logger<unknown>): Promise<Organization> {
-  logger.debug(`Checking organization file: ${orgPath}`)
+async function checkRegistry (directory: string, logger: Logger<unknown>): Promise<void> {
+  const registryPath = path.resolve(directory)
+  logger.info(`Checking registry at: ${registryPath}`)
 
-  const raw = YAML.parse(await Bun.file(orgPath).text())
-  const parsed = OrganizationSchema.parse(raw)
-
-  // Verify that API version is supported
-  if (parsed.apiVersion !== 'hackfed/v1') {
-    logger.error(`Unsupported API version: ${parsed.apiVersion} in file: ${orgPath}`)
-    process.exit(1)
-  }
-
-  // Verify that organization IDs are consistent
-  {
-    const fileName = path.basename(orgPath, path.extname(orgPath))
-    if (parsed.metadata.orgId !== fileName) {
-      logger.error('(%s): metadata orgId mismatch "%s"', fileName, parsed.metadata.orgId)
-      process.exit(1)
-    }
-
-    if (parsed.metadata.orgId !== parsed.spec.id) {
-      logger.error('(%s): spec orgId mismatch "%s"', fileName, parsed.spec.id)
-      process.exit(1)
-    }
-  }
-
-  return parsed
-}
-
-/**
- * Check Nebula services across organizations.
- * @param context Service check context
- */
-async function checkNebulaService (context: CheckServiceContext): Promise<void> {
-  const addresses = new Set<string>()
-  const prefix = ipaddr.parseCIDR(HACKFED_NET_TELEPHONY_PREFIX)
-
-  for (const [, org] of context.orgs) {
-    if (!org.spec.services?.nebula) {
-      continue
-    }
-
-    for (const nebulaNode of org.spec.services.nebula) {
-      // Check that address is in the HackFed Nebula network
-      const addr = ipaddr.parse(nebulaNode.address)
-      // eslint-disable-next-line unicorn/prefer-regexp-test -- this is not a regexp
-      if (!addr.match(prefix)) {
-        context.logger.error('(%s) invalid Nebula address: %s', org.spec.id, nebulaNode.address)
-        process.exit(1)
-      }
-
-      // Check for duplicate Nebula addresses
-      if (addresses.has(nebulaNode.address)) {
-        context.logger.error('(%s) duplicate Nebula address found: %s', org.spec.id, nebulaNode.address)
-        process.exit(1)
-      }
-
-      // Check that listed certificate fingerprints exist
-      for await (const fingerprint of nebulaNode.certificates) {
-        const certPath = path.resolve(context.registryPath, 'nebula/certificates', `${fingerprint}.crt`)
-        const file = Bun.file(certPath)
-        if (!await file.exists()) {
-          context.logger.error('(%s) Nebula certificate not found: %s', org.spec.id, fingerprint)
-          process.exit(1)
-        }
-      }
-
-      // Verify Lighthouse endpoints
-      if (nebulaNode.lighthouse?.endpoints) {
-        for (const endpoint of nebulaNode.lighthouse.endpoints) {
-          try {
-            const url = new URL(`nebula://${endpoint}`)
-            if (!url.port) {
-              context.logger.error('(%s) Lighthouse endpoint missing port: %s', org.spec.id, endpoint)
-              process.exit(1)
-            }
-          } catch {
-            context.logger.error('(%s) invalid Lighthouse endpoint URL: %s', org.spec.id, endpoint)
-            process.exit(1)
-          }
-        }
-      }
-
-      addresses.add(nebulaNode.address)
-    }
-  }
+  await checkOrganizations(registryPath, logger)
 }
 
 /**
  * Check Telephony services across organizations.
  * @param context Service check context
  */
-async function checkTelephonyService (context: CheckServiceContext): Promise<void> {
+function checkTelephonyService (context: CheckServiceContext): void {
   const prefixes = new Set<string>()
 
   for (const [, org] of context.orgs) {
@@ -197,6 +132,52 @@ async function checkTelephonyService (context: CheckServiceContext): Promise<voi
         prefixes.add(exchange.prefix)
         orgExchanges.add(exchange.id)
       }
+    }
+  }
+}
+
+function checkWireguardService (context: CheckServiceContext): void {
+  const addresses = new Set<string>()
+  const prefix = ipaddr.parseCIDR(HACKFED_NET_TELEPHONY_PREFIX)
+
+  for (const [, org] of context.orgs) {
+    if (!org.spec.services?.wireguard) {
+      continue
+    }
+
+    for (const wgNode of org.spec.services.wireguard) {
+      // Check that address is in the HackFed Wireguard network
+      const addr = ipaddr.parse(wgNode.address)
+
+      if (!addr.match(prefix)) {
+        context.logger.error('(%s) invalid Wireguard address: %s', org.spec.id, wgNode.address)
+        process.exit(1)
+      }
+
+      // Check for duplicate Wireguard addresses
+      if (addresses.has(wgNode.address)) {
+        context.logger.error('(%s) duplicate Wireguard address found: %s', org.spec.id, wgNode.address)
+        process.exit(1)
+      }
+
+      // Check that public endpoint is a valid address
+      try {
+        const url = new URL(`wg://${wgNode.endpoint}`)
+
+        // If hostname appears to be an IP address, verify that it's not an internal HackFed address
+        if (ipaddr.isValid(url.hostname)) {
+          const endpointAddr = ipaddr.parse(url.hostname)
+          if (endpointAddr.match(prefix)) {
+            context.logger.error('(%s) Wireguard endpoint cannot be an internal HackFed address: %s', org.spec.id, wgNode.endpoint)
+            process.exit(1)
+          }
+        }
+      } catch {
+        context.logger.error('(%s) invalid Wireguard endpoint URL: %s', org.spec.id, wgNode.endpoint)
+        process.exit(1)
+      }
+
+      addresses.add(wgNode.address)
     }
   }
 }

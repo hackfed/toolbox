@@ -4,8 +4,8 @@
   "extends": "@bksp/style-guide/typescript",
   "compilerOptions": {
     "baseUrl": ".",
-    "lib": ["es2022"],
-		"target": "es2022",
+    "lib": ["ESNext"],
+		"target": "esnext",
 		"moduleDetection": "force",
 		"module": "preserve",
 		"resolveJsonModule": true,

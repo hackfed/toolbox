@@ -1,4 +1,1 @@
-/**
- * @type {import('eslint').Linter.Config}
- */
-export { default } from '@bksp/style-guide/eslint/node'
+export { default } from '@bksp/style-guide/eslint/bun'

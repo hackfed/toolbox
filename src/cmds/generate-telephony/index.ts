@@ -41,18 +41,20 @@ async function generateTelephonyDirectory (
 
   // Parse and check organization files
   const glob = new Glob('orgs/*.yaml')
-  for await (const file of glob.scan(registryPath)) {
+  for await (const filePath of glob.scan(registryPath)) {
+    const file = await Bun.file(path.resolve(registryPath, filePath)).text()
     const org = OrganizationSchema.parse(
-      YAML.parse(await Bun.file(path.resolve(registryPath, file)).text())
+      YAML.parse(file)
     )
 
-    if (!org.spec.services?.telephony) {
+    // Skip organizations without telephony services or exchanges
+    if (!org.spec.services?.telephony || !org.spec.services.telephony.exchanges?.length) {
       continue
     }
 
     // Map exchanges
     const exchanges = new Map<string, TelephonyDirectoryExchange>()
-    for (const exchange of org.spec.services.telephony.exchanges ?? []) {
+    for (const exchange of org.spec.services.telephony.exchanges) {
       exchanges.set(exchange.id, {
         codecs: exchange.codecs,
         endpoint: exchange.address,
@@ -63,7 +65,7 @@ async function generateTelephonyDirectory (
     }
 
     orgs.push({
-      exchanges: [...exchanges.values()],
+      exchanges: exchanges.values().toArray(),
       name: org.spec.name,
       orgId: org.spec.id,
       phonebook: org.spec.services.telephony.phonebook,
